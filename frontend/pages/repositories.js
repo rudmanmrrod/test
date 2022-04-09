@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import Head from 'next/head'
+import { useSelector, useDispatch } from 'react-redux';
+import Head from 'next/head';
 
 // Mui
 import { Grid } from "@mui/material";
@@ -9,32 +10,41 @@ import Search from '../components/Search';
 import RepositoriesTable from '../components/Tables/RepositoriesTable';
 
 // Services
-import { getRepositories } from '../services/repositories'
+import { getRepositories } from '../services/repositories';
+
+// Redux
+import { addRepositories, clearRepositories } from '../store/repositories';
 
 const Repositories = () => {
   // const
   const rowsPerPage = 10;
   // States
   const [searchItem, setSearchItem] = useState('');
-  const [repositories, setRepositories] = useState([]);
   const [page, setPage] = useState(0);
   const [total, setTotal] = useState(0);
+  const [loading, setLoading] = useState(false);
+  // Redux
+  const dispatch = useDispatch()
+  const repositories = useSelector((state) => state.repositories.repositories)
 
   const onSearch = (value) => {
     try {
       if (value) {
+        setLoading(true);
         setSearchItem(value);
         getRepositories({q: value, page: 1, per_page: rowsPerPage}).then((response) => {
           setTotal(response.data.total_count);
-          setRepositories(response.data.items);
+          dispatch(addRepositories(response.data.items));
+          setLoading(false);
         });
       } else {
         setTotal(0);
-        setRepositories([]);
+        dispatch(clearRepositories());
       }
     } catch (error) {
       setTotal(0);
-      setRepositories([]);
+      dispatch(clearRepositories());
+      setLoading(false);
     }
     
   };
@@ -43,7 +53,7 @@ const Repositories = () => {
     setPage(page);
     getRepositories({q: searchItem, page: page + 1, per_page: rowsPerPage}).then((response) => {
       setTotal(response.data.total_count);
-      setRepositories(response.data.items);
+      dispatch(addRepositories(response.data.items));
     });
   };
 
@@ -63,7 +73,7 @@ const Repositories = () => {
           total={total}
           rowsPerPage={rowsPerPage}
           onPageChange={onPageChange}
-          loading={true}
+          loading={loading}
         />
       </Grid>
     </Grid>
